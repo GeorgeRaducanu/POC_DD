@@ -1,0 +1,16 @@
+# {{ project_name }}
+
+Generated design overview for **{{ source }}**.
+
+## Translation unit
+
+- Compiler arguments: `{{ compile_arguments | join(' ') }}`
+- AST declarations: {{ symbols | length }}
+- Documented declarations: {{ documented_count }}
+- Relationship diagram: [DOT source](symbol-relationships.dot) and [SVG rendering](symbol-relationships.svg)
+
+## Declaration index
+
+{% for symbol in symbols -%}
+- [{{ symbol.qualified_name }}](symbols/{{ symbol.slug }}.md) - {{ symbol.kind }}
+{% endfor %}

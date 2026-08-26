@@ -1,0 +1,8 @@
+build/
+.vscode/
+.venv/
+__pycache__/
+*.py[cod]
+*.user
+*.suo
+utils/gen_dd/output/

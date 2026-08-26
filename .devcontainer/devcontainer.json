@@ -1,0 +1,23 @@
+{
+  "name": "DD Canvas Development",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "remoteUser": "vscode",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-python.python",
+        "llvm-vs-code-extensions.vscode-clangd"
+      ],
+      "settings": {
+        "C_Cpp.default.cppStandard": "c++14",
+        "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+        "python.defaultInterpreterPath": "/usr/bin/python3"
+      }
+    }
+  },
+  "postCreateCommand": "cmake -S . -B build -G Ninja"
+}

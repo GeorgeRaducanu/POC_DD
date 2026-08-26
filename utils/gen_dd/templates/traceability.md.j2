@@ -1,0 +1,7 @@
+# Traceability Index
+
+| Declaration | Kind | Source | Documentation |
+| --- | --- | --- | --- |
+{% for symbol in symbols -%}
+| [{{ symbol.qualified_name }}](symbols/{{ symbol.slug }}.md) | {{ symbol.kind }} | `{{ symbol.file }}:{{ symbol.line }}` | {{ 'Yes' if symbol.comment else 'No' }} |
+{% endfor %}

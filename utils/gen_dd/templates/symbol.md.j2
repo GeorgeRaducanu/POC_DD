@@ -1,0 +1,17 @@
+# {{ symbol.qualified_name }}
+
+- Kind: `{{ symbol.kind }}`
+- Source: `{{ symbol.file }}:{{ symbol.line }}`
+- Access: `{{ symbol.access }}`
+
+{% if symbol.comment %}{{ symbol.comment }}{% else %}_No Doxygen description was found._{% endif %}
+
+## Children
+
+{% if symbol.children -%}
+{% for child in symbol.children -%}
+- `{{ child }}`
+{% endfor %}
+{% else -%}
+_No direct declarations._
+{% endif %}
