@@ -38,7 +38,7 @@ Inside the devcontainer, run the complete build, test, documentation, diagram, a
 sh scripts/run.sh
 ```
 
-The script creates `.venv`, installs `utils/gen_dd/requirements.txt`, configures Ninja, builds the C++14 targets, runs CTest, runs the example, generates Doxygen XML/HTML and Graphviz diagrams, then writes Markdown to `utils/gen_dd/output/`.
+The script creates `.venv`, installs `utils/gen_dd/requirements.txt`, configures Ninja, builds the C++14 targets, runs CTest, runs the example, generates Doxygen XML/HTML and Graphviz diagrams, then writes Markdown, styled DOT/SVG diagrams, and a standalone `design-report.html` to `utils/gen_dd/output/`.
 
 ## API documentation
 
@@ -69,7 +69,7 @@ Then run the generator after building and generating documentation:
   --output utils/gen_dd/output
 ```
 
-By default, the utility analyzes every unique translation unit in the compilation database. Use `--source` only when debugging one file. It uses each source file's actual compiler arguments from the compilation database, libclang to inspect declarations, a Python Doxygen XML parser to recover comments, Jinja templates to render Markdown, and the Python Graphviz binding to render relationship diagrams. The generator always writes a `symbol-relationships.dot` source file; SVG rendering additionally requires the native `dot` executable. Use `--help` for the complete interface. `--fixture` runs a dependency-light template smoke test.
+By default, the utility analyzes every unique translation unit in the compilation database. Use `--source` only when debugging one file. It uses each source file's actual compiler arguments from the compilation database, libclang to inspect declarations, a Python Doxygen XML parser to recover comments, Jinja templates to render Markdown, and the Python Graphviz binding to render relationship diagrams. The generator writes a styled `symbol-relationships.dot` source file, an SVG diagram when the native `dot` executable is available, and a self-contained `design-report.html` that can be opened directly from the filesystem and shared as the primary design artifact. Use `--help` for the complete interface. `--fixture` runs a dependency-light template smoke test.
 
 On Windows, if libclang is not found automatically, set `LIBCLANG_PATH` to the directory containing `libclang.dll` before running the utility.
 

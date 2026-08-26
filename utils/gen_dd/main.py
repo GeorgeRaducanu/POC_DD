@@ -3,8 +3,8 @@
 from __future__ import print_function
 
 import argparse
+import hashlib
 import json
-import os
 import re
 import sys
 from dataclasses import dataclass, field
@@ -43,7 +43,9 @@ class Symbol:
 
     @property
     def slug(self):
-        return re.sub(r"[^a-z0-9]+", "-", self.qualified_name.lower()).strip("-")
+        readable = re.sub(r"[^a-z0-9]+", "-", self.qualified_name.lower()).strip("-")
+        identity = "{}:{}:{}".format(self.qualified_name, self.file, self.line).encode("utf-8")
+        return "{}-{}".format(readable, hashlib.sha1(identity).hexdigest()[:8])
 
 
 def load_commands(database, source=None):
@@ -118,6 +120,8 @@ def extract_symbols(source, arguments):
             symbol = Symbol(qualified, _cursor_kind(cursor), str(location.file.name), location.line,
                             str(cursor.access_specifier).split(".")[-1].lower(), cursor.raw_comment or "")
             symbols.append(symbol)
+            if parent:
+                parent.children.append(symbol)
             for child in cursor.get_children():
                 visit(child, symbol)
         else:
@@ -160,22 +164,45 @@ def parse_doxygen(xml_root):
 def render_graph(symbols, output):
     output = Path(output)
     dot_path = output / "symbol-relationships.dot"
-    lines = ["digraph design {", "  rankdir=LR;", "  node [shape=box];"]
-    for symbol in symbols:
-        label = symbol.qualified_name.replace('"', "\\\"")
-        lines.append('  "{}";'.format(label))
+    visible_kinds = {"namespace", "class", "struct", "function", "method", "constructor", "destructor"}
+    visible = [symbol for symbol in symbols if symbol.kind in visible_kinds]
+    node_ids = {id(symbol): "node{}".format(index) for index, symbol in enumerate(visible)}
+    styles = {
+        "namespace": ('shape=box, style="rounded,filled", fillcolor="#e8eef7", color="#54708f"'),
+        "class": ('shape=box, style="rounded,filled", fillcolor="#d9f0ee", color="#287d78"'),
+        "struct": ('shape=box, style="rounded,filled", fillcolor="#e6f2df", color="#5c8a3d"'),
+        "function": ('shape=ellipse, style="filled", fillcolor="#fff1d6", color="#b77818"'),
+        "method": ('shape=ellipse, style="filled", fillcolor="#fff1d6", color="#b77818"'),
+        "constructor": ('shape=ellipse, style="filled", fillcolor="#fff1d6", color="#b77818"'),
+        "destructor": ('shape=ellipse, style="filled", fillcolor="#fff1d6", color="#b77818"'),
+    }
+    lines = [
+        "digraph design {",
+        "  graph [bgcolor=\"#fbfaf7\", fontname=\"DejaVu Sans\", fontsize=12, rankdir=LR, ranksep=1.0, nodesep=0.45, splines=ortho, pad=0.3];",
+        "  node [fontname=\"DejaVu Sans\", fontsize=10, margin=\"0.16,0.10\"];",
+        "  edge [color=\"#718096\", fontname=\"DejaVu Sans\", fontsize=9, arrowsize=0.7, penwidth=1.2];",
+    ]
+    lines.append('  legend [label="Legend\\l  namespace  |  type  |  callable\\l", shape=note, style="filled", fillcolor="#f2eee6", color="#9b8f7a"];')
+    for symbol in visible:
+        node_id = node_ids[id(symbol)]
+        label = "{}\\n{}".format(symbol.qualified_name, symbol.kind).replace('"', "\\\"")
+        lines.append('  {} [label="{}", {}, URL="symbols/{}.md", tooltip="{}"];'.format(
+            node_id, label, styles[symbol.kind], symbol.slug, symbol.qualified_name.replace('"', "\\\"")
+        ))
         for child in symbol.children:
-            lines.append('  "{}" -> "{}";'.format(label, child))
+            if id(child) in node_ids:
+                lines.append('  {} -> {} [xlabel="contains"];'.format(node_id, node_ids[id(child)]))
     lines.append("}")
-    dot_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    dot_source = "\n".join(lines) + "\n"
+    dot_path.write_text(dot_source, encoding="utf-8")
     if graphviz is None:
-        return False
+        return ""
     try:
-        graph = graphviz.Source("\n".join(lines), filename=str(output / "symbol-relationships"), format="svg")
+        graph = graphviz.Source(dot_source, filename=str(output / "symbol-relationships"), format="svg")
         graph.render(cleanup=True)
-        return True
+        return (output / "symbol-relationships.svg").read_text(encoding="utf-8")
     except graphviz.backend.ExecutableNotFound:
-        return False
+        return ""
 
 
 def render(symbols, source, arguments, output, xml_root=None):
@@ -188,19 +215,24 @@ def render(symbols, source, arguments, output, xml_root=None):
     (output / "symbols").mkdir(parents=True, exist_ok=True)
     environment = Environment(loader=FileSystemLoader(str(Path(__file__).parent / "templates")),
                               undefined=StrictUndefined, autoescape=False)
+    graph_svg = render_graph(symbols, output)
     values = {
         "project_name": "DD Canvas",
         "source": source,
         "compile_arguments": arguments,
         "symbols": symbols,
         "documented_count": sum(bool(symbol.comment) for symbol in symbols),
+        "graph_svg": graph_svg,
+        "graph_dot": (output / "symbol-relationships.dot").read_text(encoding="utf-8"),
     }
     (output / "index.md").write_text(environment.get_template("overview.md.j2").render(**values), encoding="utf-8")
     (output / "traceability.md").write_text(environment.get_template("traceability.md.j2").render(**values), encoding="utf-8")
     template = environment.get_template("symbol.md.j2")
     for symbol in symbols:
         (output / "symbols" / (symbol.slug + ".md")).write_text(template.render(symbol=symbol), encoding="utf-8")
-    render_graph(symbols, output)
+    (output / "design-report.html").write_text(
+        environment.get_template("report.html.j2").render(**values), encoding="utf-8"
+    )
 
 
 def generate_project(database, output, xml_root=None, source=None):

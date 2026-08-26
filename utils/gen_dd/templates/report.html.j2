@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ project_name }} design report</title>
+  <style>
+    :root { color-scheme: light; --ink: #24313b; --muted: #65727c; --paper: #fbfaf7; --panel: #ffffff; --line: #d9d4cb; --accent: #287d78; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: var(--paper); font: 15px/1.55 Georgia, serif; }
+    main { max-width: 1180px; margin: 0 auto; padding: 48px 24px 72px; }
+    h1, h2, h3, summary { font-family: "DejaVu Sans", sans-serif; }
+    h1 { margin: 0 0 8px; font-size: 2.25rem; letter-spacing: 0; }
+    h2 { margin-top: 42px; border-bottom: 2px solid var(--ink); padding-bottom: 8px; }
+    h3 { margin-bottom: 4px; }
+    .lede, .meta, .muted { color: var(--muted); }
+    .metrics { display: grid; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 12px; margin: 28px 0; max-width: 480px; }
+    .metric { background: var(--panel); border: 1px solid var(--line); padding: 16px; }
+    .metric strong { display: block; font: 700 1.55rem "DejaVu Sans", sans-serif; color: var(--accent); }
+    .diagram { overflow: auto; background: #fff; border: 1px solid var(--line); padding: 18px; }
+    .diagram svg { display: block; min-width: 640px; max-width: 100%; height: auto; }
+    .legend { color: var(--muted); font-size: .9rem; }
+    table { width: 100%; border-collapse: collapse; background: var(--panel); }
+    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: 9px 10px; }
+    th { font-family: "DejaVu Sans", sans-serif; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+    code, pre { font-family: "DejaVu Sans Mono", monospace; font-size: .86em; }
+    a { color: #176b78; }
+    details { background: var(--panel); border: 1px solid var(--line); margin: 8px 0; padding: 10px 14px; }
+    summary { cursor: pointer; font-weight: 700; }
+    pre { overflow: auto; white-space: pre-wrap; background: #f2eee6; padding: 14px; }
+    @media (max-width: 640px) { main { padding: 30px 14px 48px; } h1 { font-size: 1.75rem; } .metrics { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <p class="meta">Generated design material</p>
+  <h1>{{ project_name }}</h1>
+  <p class="lede">A navigable map of declarations, ownership, and documentation for <code>{{ source }}</code>.</p>
+
+  <section class="metrics" aria-label="Project metrics">
+    <div class="metric"><strong>{{ symbols | length }}</strong> declarations</div>
+    <div class="metric"><strong>{{ documented_count }}</strong> documented</div>
+  </section>
+
+  <h2>Relationship diagram</h2>
+  <p class="legend">Namespaces are blue, types are teal or green, and callable declarations are amber. Arrows show declaration containment.</p>
+  <div class="diagram">
+    {% if graph_svg %}{{ graph_svg | safe }}{% else %}<p class="muted">Graphviz is unavailable. See the DOT source below.</p>{% endif %}
+  </div>
+
+  <h2>Declaration index</h2>
+  <table>
+    <thead><tr><th>Declaration</th><th>Kind</th><th>Source</th></tr></thead>
+    <tbody>
+    {% for symbol in symbols %}
+      <tr><td><a href="#{{ symbol.slug }}">{{ symbol.qualified_name }}</a></td><td>{{ symbol.kind }}</td><td>{{ symbol.file }}:{{ symbol.line }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Details</h2>
+  {% for symbol in symbols %}
+  <details id="{{ symbol.slug }}">
+    <summary>{{ symbol.qualified_name }} <span class="muted">({{ symbol.kind }})</span></summary>
+    <p><strong>Source:</strong> {{ symbol.file }}:{{ symbol.line }}<br><strong>Access:</strong> {{ symbol.access }}</p>
+    <p>{% if symbol.comment %}{{ symbol.comment }}{% else %}<span class="muted">No Doxygen description was found.</span>{% endif %}</p>
+    {% if symbol.children %}<p><strong>Contains:</strong> {% for child in symbol.children %}<a href="#{{ child.slug }}">{{ child.qualified_name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+  </details>
+  {% endfor %}
+
+  <h2>Raw material</h2>
+  <p><a href="index.md">Markdown overview</a> · <a href="traceability.md">Traceability</a> · <a href="symbol-relationships.svg">SVG diagram</a></p>
+  <details><summary>DOT source</summary><pre>{{ graph_dot }}</pre></details>
+</main>
+</body>
+</html>

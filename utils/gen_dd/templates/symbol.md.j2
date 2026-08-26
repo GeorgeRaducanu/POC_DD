@@ -10,7 +10,7 @@
 
 {% if symbol.children -%}
 {% for child in symbol.children -%}
-- `{{ child }}`
+- [{{ child.qualified_name }}](<{{ child.slug }}.md>)
 {% endfor %}
 {% else -%}
 _No direct declarations._
